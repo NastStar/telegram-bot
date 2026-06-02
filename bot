@@ -1,0 +1,50 @@
+import os
+import asyncio
+from aiogram import Bot, Dispatcher, types
+from aiogram.filters import Command
+from openai import OpenAI
+
+# --- Настройки ---
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+
+# --- Клиент OpenRouter ---
+client = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=OPENROUTER_API_KEY,
+)
+
+bot = Bot(token=TELEGRAM_TOKEN)
+dp = Dispatcher()
+
+
+@dp.message(Command("start"))
+async def cmd_start(message: types.Message):
+    await message.answer("Привет! Я AI-бот. Напиши мне что-нибудь 👋")
+
+
+@dp.message(Command("help"))
+async def cmd_help(message: types.Message):
+    await message.answer("Просто напиши мне сообщение — я отвечу с помощью AI.")
+
+
+@dp.message()
+async def handle_message(message: types.Message):
+    await message.answer("Думаю...")
+
+    response = client.chat.completions.create(
+        model="openai/gpt-oss-20b:free",
+        messages=[{"role": "user", "content": message.text}],
+    )
+
+    answer = response.choices[0].message.content
+    await message.answer(answer)
+
+
+async def main():
+    print("Бот запущен!")
+    await dp.start_polling(bot)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
